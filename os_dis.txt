@@ -34,6 +34,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
 SYMBOL TABLE:
 00000000 l    df *ABS*	00000000 start.o
 00007c13 l       .text	00000000 read_self_all
+00007e00 l       .text	00000000 _start_32
 00000000 l    df *ABS*	00000000 os.c
 00007c00 g       .text	00000000 _start
 00018000 g       .text	00000000 __bss_start
@@ -68,21 +69,23 @@ _start:
 00007c13 <read_self_all>:
 	
 read_self_all:
-	mov $0x7E00, %bx
+	mov $_start_32, %bx	// 告诉BIOS要读入数据的地址
     7c13:	bb 00 7e b9 02       	mov    $0x2b97e00,%ebx
-	mov $0x2, %cx
+	mov $0x2, %cx		// 0x2 -> CH 表示读第2个扇区，0x0 -> CL 表示读第0个扇区
     7c18:	00 b8 40 02 ba 80    	add    %bh,-0x7f45fdc0(%eax)
-	mov $0x240, %ax
-	mov $0x80, %dx
+	mov $0x240, %ax		// 0x40 -> AL 表示读64个扇区，0x2 -> AH 表示读磁盘 
+	mov $0x80, %dx		// 表示计算机上的第一个硬盘
     7c1e:	00 cd                	add    %cl,%ch
 	int $0x13
     7c20:	13 72 f0             	adc    -0x10(%edx),%esi
 	jc read_self_all
 
-	jmp .
+	jmp .				// -exec x /32x 0x7E00
     7c23:	eb fe                	jmp    7c23 <read_self_all+0x10>
 	...
     7dfd:	00 55 aa             	add    %dl,-0x56(%ebp)
+
+00007e00 <_start_32>:
     7e00:	35 35 35 35 35       	xor    $0x35353535,%eax
     7e05:	35 35 35 35 35       	xor    $0x35353535,%eax
     7e0a:	35 35 35 35 35       	xor    $0x35353535,%eax

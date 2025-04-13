@@ -10,7 +10,7 @@ ELF Header:
   Version:                           0x1
   Entry point address:               0x7c00
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          69948 (bytes into file)
+  Start of section headers:          69972 (bytes into file)
   Flags:                             0x0
   Size of this header:               52 (bytes)
   Size of program headers:           32 (bytes)
@@ -30,9 +30,9 @@ Section Headers:
   [ 6] .debug_line       PROGBITS        00000000 010e8a 000058 00      0   0  1
   [ 7] .debug_str        PROGBITS        00000000 010ee2 0000d9 01  MS  0   0  1
   [ 8] .debug_line_str   PROGBITS        00000000 010fbb 00004f 01  MS  0   0  1
-  [ 9] .symtab           SYMTAB          00000000 01100c 000080 10     10   4  4
-  [10] .strtab           STRTAB          00000000 01108c 000034 00      0   0  1
-  [11] .shstrtab         STRTAB          00000000 0110c0 00007a 00      0   0  1
+  [ 9] .symtab           SYMTAB          00000000 01100c 000090 10     10   5  4
+  [10] .strtab           STRTAB          00000000 01109c 00003e 00      0   0  1
+  [11] .shstrtab         STRTAB          00000000 0110da 00007a 00      0   0  1
 Key to Flags:
   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
   L (link order), O (extra OS processing required), G (group), T (TLS),
@@ -58,15 +58,16 @@ There is no dynamic section in this file.
 There are no relocations in this file.
 No processor specific unwind information to decode
 
-Symbol table '.symtab' contains 8 entries:
+Symbol table '.symtab' contains 9 entries:
    Num:    Value  Size Type    Bind   Vis      Ndx Name
      0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
      1: 00000000     0 FILE    LOCAL  DEFAULT  ABS start.o
      2: 00007c13     0 NOTYPE  LOCAL  DEFAULT    1 read_self_all
-     3: 00000000     0 FILE    LOCAL  DEFAULT  ABS os.c
-     4: 00007c00     0 NOTYPE  GLOBAL DEFAULT    1 _start
-     5: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 __bss_start
-     6: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 _edata
-     7: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 _end
+     3: 00007e00     0 NOTYPE  LOCAL  DEFAULT    1 _start_32
+     4: 00000000     0 FILE    LOCAL  DEFAULT  ABS os.c
+     5: 00007c00     0 NOTYPE  GLOBAL DEFAULT    1 _start
+     6: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 __bss_start
+     7: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 _edata
+     8: 00018000     0 NOTYPE  GLOBAL DEFAULT    1 _end
 
 No version information found in this file.

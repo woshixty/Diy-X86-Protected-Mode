@@ -27,16 +27,17 @@ _start:
 	mov $_start, %esp
 	
 read_self_all:
-	mov $0x7E00, %bx
-	mov $0x2, %cx
-	mov $0x240, %ax
-	mov $0x80, %dx
+	mov $_start_32, %bx	// 告诉BIOS要读入数据的地址
+	mov $0x2, %cx		// 0x2 -> CH 表示读第2个扇区，0x0 -> CL 表示读第0个扇区
+	mov $0x240, %ax		// 0x40 -> AL 表示读64个扇区，0x2 -> AH 表示读磁盘 
+	mov $0x80, %dx		// 表示计算机上的第一个硬盘
 	int $0x13
 	jc read_self_all
 
-	jmp .
+	jmp .				// -exec x /32x 0x7E00
 
-	.org 0x1fe		// 510字节处是BIOS引导扇区的标志
+	.org 0x1fe			// 510字节处是BIOS引导扇区的标志
 	.byte 0x55, 0xaa	// BIOS引导扇区的标志
 
+_start_32:
 	.fill 64*1024, 1, 0x35
