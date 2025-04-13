@@ -34,10 +34,28 @@ read_self_all:
 	int $0x13
 	jc read_self_all
 
-	jmp .				// -exec x /32x 0x7E00
+	cli					// 禁止中断
+	lgdt [gdt_desc]		// 将数据段描述符表加载到GDTR寄存器中
+	mov $1, %eax
+	lmsw %ax
+	jmp $KERNEL_CODE_SEG, $_start_32
 
 	.org 0x1fe			// 510字节处是BIOS引导扇区的标志
 	.byte 0x55, 0xaa	// BIOS引导扇区的标志
 
+	.code32
+	.text
 _start_32:
-	.fill 64*1024, 1, 0x35
+	mov $KERNEL_DATA_SEG, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %ss
+	mov %ax, %gs
+	mov %ax, %fs
+ 	mov $_start, %esp
+	jmp .
+	
+
+gdt_desc:
+	.word (256*8) - 1	// 描述符表的大小
+	.long gdt_table		// 描述符表的地址

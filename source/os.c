@@ -10,8 +10,8 @@
 #include "os.h"
 
 typedef unsigned char uint8_t;
-typedef unsigned char uint16_t;
-typedef unsigned char uint32_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
 
 // 8字节对齐
 struct {
@@ -20,14 +20,14 @@ struct {
     uint16_t basehl_attr; 
     uint16_t base_limit;
 } gdt_table[256] __attribute__((aligned(8))) = {
-    [KERNEL_CODE_DEG / 8] = {
+    [KERNEL_CODE_SEG / 8] = {
         .limit_l = 0xFFFF,      // 表示段的大小为4GB 
         .base_l = 0x0000,       // 段基址为0
         .basehl_attr = 0x9A00,  // 0x9A表示代码段，0x00表示可读，0x1表示可执行，0x00表示非扩展段，0x1表示32位段
         .base_limit = 0x00CF    // 0x00表示段的属性，0xCF表示段的属性，0x00表示段的属性
     },
 
-    [KERNEL_DATA_DEG / 8] = {
+    [KERNEL_DATA_SEG / 8] = {
         .limit_l = 0xFFFF,      // 表示段的大小为4GB 
         .base_l = 0x0000,       // 段基址为0
         .basehl_attr = 0x9200,  // 0x92表示数据段，0x00表示可读，0x00表示可写，0x00表示非扩展段，0x1表示32位段
