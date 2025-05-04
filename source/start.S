@@ -1,16 +1,9 @@
-/**
- * 功能：16位与32位的启动混合代码
- *
- *创建时间：2022年8月31日
- *作者：李述铜
- *联系邮箱: 527676163@qq.com
- *相关信息：此工程为《从0写x86 Linux操作系统》的前置课程，用于帮助预先建立对32位x86体系结构的理解。整体代码量不到200行（不算注释）
- *课程请见：https://study.163.com/course/introduction.htm?courseId=1212765805&_trace_c_p_k2_=0bdf1e7edda543a8b9a0ad73b5100990
- */
-	#include "os.h"
+#include "os.h"
 
 	// 声明本地以下符号是全局的，在其它源文件中可以访问
 	.global _start
+
+	.extern os_init
 
 	// 指定以下的代码生成16位的机器指令，这样才能在启动时的实模式下运行
   	.code16
@@ -53,6 +46,19 @@ _start_32:
 	mov %ax, %gs
 	mov %ax, %fs
  	mov $_start, %esp
+
+	call os_init
+
+	mov $page_dir, %eax		// 将页目录表的地址加载到EAX寄存器中
+	mov %eax, %cr3			// 将页目录表的地址加载到CR3寄存器中
+
+	mov %cr4, %eax			// 读取CR4寄存器的值
+	orl $(1 << 4), %eax		// 设置PSE位，表示启用大页表
+	mov %eax, %cr4			// 设置PSE位，表示启用大页表
+
+	mov %cr0, %eax			// 读取CR0寄存器的值
+	orl $(1 << 31), %eax	// 设置PE位，表示进入保护模式
+	mov %eax, %cr0			// 将修改后的值写入CR0寄存器
 	jmp .
 	
 
