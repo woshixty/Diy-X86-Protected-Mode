@@ -13,6 +13,15 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
+#degine PDE_P   (1 << 0)
+#degine PDE_W   (1 << 1)
+#degine PDE_U   (1 << 2)
+#degine PDE_PS  (1 << 7)
+// 页目录表
+uint32_t page_dir[1024] __attribute__((aligned(4096))) = {
+    [0] = (0) | PDE_P | PDE_W | PDE_U | PDE_PS
+};
+
 // 8字节对齐
 struct {
     uint16_t limit_l; 
