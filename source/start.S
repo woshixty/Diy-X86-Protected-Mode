@@ -60,12 +60,10 @@ _start_32:
 	mov %cr0, %eax			// 读取CR0寄存器的值
 	orl $(1 << 31), %eax	// 设置PE位，表示进入保护模式
 	mov %eax, %cr0			// 将修改后的值写入CR0寄存器
-	
-	sti
 
 	push $APP_DATA_SEG
-	push $0
-	push $0x202
+	push $task0_dpl3_start + 1024 * 4
+	push $0					// $0x202
 	push $APP_CODE_SEG
 	push $task_0_entry
 	iret
@@ -80,6 +78,11 @@ timer_init:
  	iret
 
 task_0_entry:
+	mov %ss, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %gs
+	mov %ax, %fs
 	jmp .
 
 gdt_desc:

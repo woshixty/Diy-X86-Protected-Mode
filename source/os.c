@@ -21,6 +21,8 @@ uint32_t page_dir[1024] __attribute__((aligned(4096))) = {
     [0] = (0) | PDE_P | PDE_W | PDE_U | PDE_PS
 };
 
+uint32_t task0_dpl3_start[1024];
+
 // IDT Table
 struct {
     uint16_t offset_l; 
