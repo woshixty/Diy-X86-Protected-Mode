@@ -62,7 +62,13 @@ _start_32:
 	mov %eax, %cr0			// 将修改后的值写入CR0寄存器
 	
 	sti
-	jmp .
+
+	push $APP_DATA_SEG
+	push $0
+	push $0x202
+	push $APP_CODE_SEG
+	push $task_0_entry
+	iret
 	
 timer_init:
 	push %ds
@@ -72,6 +78,9 @@ timer_init:
 	popa
 	pop %ds
  	iret
+
+task_0_entry:
+	jmp .
 
 gdt_desc:
 	.word (256*8) - 1	// 描述符表的大小

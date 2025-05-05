@@ -48,6 +48,20 @@ struct {
         .base_l = 0x0000,       // 段基址为0
         .basehl_attr = 0x9200,  // 0x92表示数据段，0x00表示可读，0x00表示可写，0x00表示非扩展段，0x1表示32位段
         .base_limit = 0x00CF    // 0x00表示段的属性，0xCF表示段的属性，0x00表示段的属性
+    },
+
+    [APP_CODE_SEG / 8] = {
+        .limit_l = 0xFFFF,
+        .base_l = 0x0000,
+        .basehl_attr = 0xFA00,
+        .base_limit = 0x00CF
+    },
+
+    [APP_DATA_SEG / 8] = {
+        .limit_l = 0xFFFF,
+        .base_l = 0x0000,
+        .basehl_attr = 0xF300,
+        .base_limit = 0x00CF
     }
 };
 
