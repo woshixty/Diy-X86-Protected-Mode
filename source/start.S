@@ -1,7 +1,7 @@
 #include "os.h"
 
 	// 声明本地以下符号是全局的，在其它源文件中可以访问
-	.global _start
+	.global _start, timer_init
 
 	.extern os_init
 
@@ -29,6 +29,7 @@ read_self_all:
 
 	cli					// 禁止中断
 	lgdt [gdt_desc]		// 将数据段描述符表加载到GDTR寄存器中
+	lidt [idt_desc]		// 将中断描述符表加载到IDTR寄存器中
 	mov $1, %eax
 	lmsw %ax
 	jmp $KERNEL_CODE_SEG, $_start_32
@@ -59,9 +60,22 @@ _start_32:
 	mov %cr0, %eax			// 读取CR0寄存器的值
 	orl $(1 << 31), %eax	// 设置PE位，表示进入保护模式
 	mov %eax, %cr0			// 将修改后的值写入CR0寄存器
+	
+	sti
 	jmp .
 	
+timer_init:
+	push %ds
+	pusha
+	mov $0x20, %al
+	outb %al, $0x20
+	popa
+	pop %ds
+ 	iret
 
 gdt_desc:
 	.word (256*8) - 1	// 描述符表的大小
 	.long gdt_table		// 描述符表的地址
+idt_desc:
+	.word (256*8) - 1	// 描述符表的大小
+	.long idt_table		// 描述符表的地址

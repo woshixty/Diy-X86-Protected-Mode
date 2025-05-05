@@ -21,6 +21,14 @@ uint32_t page_dir[1024] __attribute__((aligned(4096))) = {
     [0] = (0) | PDE_P | PDE_W | PDE_U | PDE_PS
 };
 
+// IDT Table
+struct {
+    uint16_t offset_l; 
+    uint16_t selector;
+    uint16_t attr; 
+    uint16_t offset_h; 
+} idt_table[256] __attribute__((aligned(8)));;
+
 // 8字节对齐
 struct {
     uint16_t limit_l; 
@@ -43,7 +51,35 @@ struct {
     }
 };
 
+void outb(uint8_t data, uint16_t port) 
+{
+    // __asm__ __volatile__("outb %[v], %[p]"::[p]"d"(port), [v]"a"(data));
+    __asm__ __volatile__("outb %[v], %[p]" : : [p] "d" (port), [v] "a" (data));
+}
+
+void timer_init(void);
 void os_init(void) {
+    outb(0x11, 0x20);
+    outb(0x11, 0xA0);
+    outb(0x20, 0x21);
+    outb(0x28, 0xA1);
+    outb(1 << 2, 0x21);
+    outb(2, 0xA1);
+    outb(0x1, 0x21);
+    outb(0x1, 0xA1);
+    outb(0xFE, 0x21);
+    outb(0xFF, 0xA0);
+
+    int tmo = 1193180 / 100;
+    outb(0x36, 0x43); // 设置计数器模式
+    outb(tmo & 0xFF, 0x40);
+    outb(tmo >> 8, 0x40);
+
+    idt_table[0x20].offset_l = (uint32_t)timer_init & 0xFFFF;
+    idt_table[0x20].offset_h = (uint32_t)timer_init >> 16;
+    idt_table[0x20].selector = KERNEL_CODE_SEG;
+    idt_table[0x20].attr = 0x8E00; // 0x8E表示中断门，0x00表示可读，0x1表示可执行，0x00表示非扩展段，0x1表示32位段
+    
     page_dir[MAP_ADDR >> 22] = (uint32_t)page_table | PDE_P | PDE_W | PDE_U;
     page_table[MAP_ADDR >> 12 & 0x3FF] = (uint32_t)map_phy_buffer | PDE_P | PDE_W | PDE_U;
 }
