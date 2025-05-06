@@ -61,6 +61,9 @@ _start_32:
 	orl $(1 << 31), %eax	// 设置PE位，表示进入保护模式
 	mov %eax, %cr0			// 将修改后的值写入CR0寄存器
 
+	mov $TASK0_TSS_SEL, %ax
+	ltr %ax 
+
 	push $APP_DATA_SEG
 	push $task0_dpl3_start + 1024 * 4
 	push $0					// $0x202
@@ -83,7 +86,7 @@ task_0_entry:
 	mov %ax, %es
 	mov %ax, %gs
 	mov %ax, %fs
-	jmp .
+	jmp task_0
 
 gdt_desc:
 	.word (256*8) - 1	// 描述符表的大小

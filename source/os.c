@@ -4,19 +4,36 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
-#define PDE_P   (1 << 0)
-#define PDE_W   (1 << 1)
-#define PDE_U   (1 << 2)
-#define PDE_PS  (1 << 7)
+void task_0 (void) {
+    uint8_t color = 0;
+    for(;;) {
+        color++;
+    }
+}
+
+/**
+ * @brief 任务1
+ */
+void task_1 (void) {
+    uint8_t color = 0xff;
+    for (;;) {
+        color--;
+    }
+}
+
+/**
+ * @brief 系统页表
+ * 下面配置中只做了一个处理，即将0x0-4MB虚拟地址映射到0-4MB的物理地址，做恒等映射。
+ */
+#define PDE_P			(1 << 0)
+#define PDE_W			(1 << 1)
+#define PDE_U			(1 << 2)
+#define PDE_PS			(1 << 7)
 
 #define MAP_ADDR 0x80000000
 
 uint8_t map_phy_buffer[4096] __attribute__((aligned(4096))) = { 0x36 };
-
-// 页表项
 static uint32_t page_table[1024] __attribute__((aligned(4096))) = { PDE_U };
-
-// 页目录表
 uint32_t page_dir[1024] __attribute__((aligned(4096))) = {
     [0] = (0) | PDE_P | PDE_W | PDE_U | PDE_PS
 };
@@ -30,6 +47,29 @@ struct {
     uint16_t attr; 
     uint16_t offset_h; 
 } idt_table[256] __attribute__((aligned(8)));;
+
+uint32_t task0_dpl0_stack[1024], task0_dpl3_stack[1024], task1_dpl0_stack[1024], task1_dpl3_stack[1024];
+
+/**
+ * @brief 任务0的任务状态段
+ */
+uint32_t task0_tss[] = {
+    // prelink, esp0, ss0, esp1, ss1, esp2, ss2
+    0,  (uint32_t)task0_dpl0_stack + 4*1024, KERNEL_DATA_SEG , /* 后边不用使用 */ 0x0, 0x0, 0x0, 0x0,
+    // cr3, eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi,
+    (uint32_t)page_dir, (uint32_t)task_0/*入口地址*/, 0x202, 0xa, 0xc, 0xd, 0xb, (uint32_t)task1_dpl0_stack + 4*1024/* 栈 */, 0x1, 0x2, 0x3,
+    // es, cs, ss, ds, fs, gs, ldt, iomap
+    APP_DATA_SEG, APP_CODE_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, 0x0, 0x0,
+};
+
+uint32_t task1_tss[] = {
+    // prelink, esp0, ss0, esp1, ss1, esp2, ss2
+    0,  (uint32_t)task1_dpl0_stack + 4*1024, KERNEL_DATA_SEG , /* 后边不用使用 */ 0x0, 0x0, 0x0, 0x0,
+    // cr3, eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi,
+    (uint32_t)page_dir, (uint32_t)task_1/*入口地址*/, 0x202, 0xa, 0xc, 0xd, 0xb, (uint32_t)task1_dpl3_stack + 4*1024/* 栈 */, 0x1, 0x2, 0x3,
+    // es, cs, ss, ds, fs, gs, ldt, iomap
+    APP_DATA_SEG, APP_CODE_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, 0x0, 0x0,
+};
 
 // 8字节对齐
 struct {
@@ -64,6 +104,20 @@ struct {
         .base_l = 0x0000,
         .basehl_attr = 0xF300,
         .base_limit = 0x00CF
+    },
+
+    [TASK0_TSS_SEL / 8] = {
+        .limit_l = 0x68,
+        .base_l = 0,
+        .basehl_attr = 0xE900,
+        .base_limit = 0x0
+    },
+
+    [TASK1_TSS_SEL / 8] = {
+        .limit_l = 0x68,
+        .base_l = 0,
+        .basehl_attr = 0xE900,
+        .base_limit = 0x0
     }
 };
 
@@ -95,6 +149,9 @@ void os_init(void) {
     idt_table[0x20].offset_h = (uint32_t)timer_init >> 16;
     idt_table[0x20].selector = KERNEL_CODE_SEG;
     idt_table[0x20].attr = 0x8E00; // 0x8E表示中断门，0x00表示可读，0x1表示可执行，0x00表示非扩展段，0x1表示32位段
+
+    gdt_table[TASK0_TSS_SEL / 8].base_l = (uint16_t)(uint32_t)task0_tss;
+    gdt_table[TASK1_TSS_SEL / 8].base_l = (uint16_t)(uint32_t)task1_tss;
     
     page_dir[MAP_ADDR >> 22] = (uint32_t)page_table | PDE_P | PDE_W | PDE_U;
     page_table[MAP_ADDR >> 12 & 0x3FF] = (uint32_t)map_phy_buffer | PDE_P | PDE_W | PDE_U;
