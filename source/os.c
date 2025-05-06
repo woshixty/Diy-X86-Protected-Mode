@@ -106,14 +106,14 @@ struct {
         .base_limit = 0x00CF
     },
 
-    [TASK0_TSS_SEL / 8] = {
+    [TASK0_TSS_SEG / 8] = {
         .limit_l = 0x68,
         .base_l = 0,
         .basehl_attr = 0xE900,
         .base_limit = 0x0
     },
 
-    [TASK1_TSS_SEL / 8] = {
+    [TASK1_TSS_SEG / 8] = {
         .limit_l = 0x68,
         .base_l = 0,
         .basehl_attr = 0xE900,
@@ -125,6 +125,15 @@ void outb(uint8_t data, uint16_t port)
 {
     // __asm__ __volatile__("outb %[v], %[p]"::[p]"d"(port), [v]"a"(data));
     __asm__ __volatile__("outb %[v], %[p]" : : [p] "d" (port), [v] "a" (data));
+}
+
+void task_sched(void) {
+    static int task_tss = TASK0_TSS_SEG;
+
+    task_tss = (task_tss == TASK0_TSS_SEG) ? TASK1_TSS_SEG: TASK0_TSS_SEG;
+    
+    uint32_t addr[] = {0, task_tss};
+    __asm__ __volatile__("ljmpl *(%[a])"::[a]"r"(addr));
 }
 
 void timer_init(void);
@@ -150,8 +159,8 @@ void os_init(void) {
     idt_table[0x20].selector = KERNEL_CODE_SEG;
     idt_table[0x20].attr = 0x8E00; // 0x8E表示中断门，0x00表示可读，0x1表示可执行，0x00表示非扩展段，0x1表示32位段
 
-    gdt_table[TASK0_TSS_SEL / 8].base_l = (uint16_t)(uint32_t)task0_tss;
-    gdt_table[TASK1_TSS_SEL / 8].base_l = (uint16_t)(uint32_t)task1_tss;
+    gdt_table[TASK0_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task0_tss;
+    gdt_table[TASK1_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task1_tss;
     
     page_dir[MAP_ADDR >> 22] = (uint32_t)page_table | PDE_P | PDE_W | PDE_U;
     page_table[MAP_ADDR >> 12 & 0x3FF] = (uint32_t)map_phy_buffer | PDE_P | PDE_W | PDE_U;
