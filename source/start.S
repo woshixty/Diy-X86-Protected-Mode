@@ -1,7 +1,7 @@
 #include "os.h"
 
 	// 声明本地以下符号是全局的，在其它源文件中可以访问
-	.global _start, timer_init
+	.global _start, timer_init, syscall_handler
 
 	.extern os_init
 
@@ -86,6 +86,10 @@ task_0_entry:
 	mov %ax, %ds
 	mov %ax, %es
 	jmp task_0			// 跳转到任务0运行
+
+syscall_handler:
+	call do_syscall 
+	ret
 
 // 定时器0中断函数
 timer_init:

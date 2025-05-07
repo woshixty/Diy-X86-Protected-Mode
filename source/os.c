@@ -4,10 +4,30 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
+void do_syscall(int func, char * str, char color) {
+    static int row = 0;
+    if(func == 2) {
+        unsigned short * dest = (unsigned short *)0xB8000 + 80 * row;
+        while (*str)
+        {
+            *dest++ = *str++ | (color << 8);
+        }
+        row = (row >= 25) ? 0 : row + 1;
+    }
+}
+
+void sys_show (char * str, char color)
+{
+    uint32_t addr[] = {0, SYSCALL_SEG};
+    __asm__ __volatile__("lcalll *(%[a])"::[a]"r"(addr));
+}
+
 void task_0 (void) {
+    char * str = "task a: 1234";
     uint8_t color = 0;
+
     for(;;) {
-        color++;
+        sys_show(str, color++);
     }
 }
 
@@ -15,9 +35,10 @@ void task_0 (void) {
  * @brief 任务1
  */
 void task_1 (void) {
+    char * str = "task b: 5678";
     uint8_t color = 0xff;
     for (;;) {
-        color--;
+        sys_show(str, color--);
     }
 }
 
@@ -78,47 +99,16 @@ struct {
     uint16_t basehl_attr; 
     uint16_t base_limit;
 } gdt_table[256] __attribute__((aligned(8))) = {
-    [KERNEL_CODE_SEG / 8] = {
-        .limit_l = 0xFFFF,      // 表示段的大小为4GB 
-        .base_l = 0x0000,       // 段基址为0
-        .basehl_attr = 0x9A00,  // 0x9A表示代码段，0x00表示可读，0x1表示可执行，0x00表示非扩展段，0x1表示32位段
-        .base_limit = 0x00CF    // 0x00表示段的属性，0xCF表示段的属性，0x00表示段的属性
-    },
+    [KERNEL_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0x9A00, 0x00CF },
+    [KERNEL_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0x9200, 0x00CF },
 
-    [KERNEL_DATA_SEG / 8] = {
-        .limit_l = 0xFFFF,      // 表示段的大小为4GB 
-        .base_l = 0x0000,       // 段基址为0
-        .basehl_attr = 0x9200,  // 0x92表示数据段，0x00表示可读，0x00表示可写，0x00表示非扩展段，0x1表示32位段
-        .base_limit = 0x00CF    // 0x00表示段的属性，0xCF表示段的属性，0x00表示段的属性
-    },
+    [APP_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0xFA00, 0x00CF },
+    [APP_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0xF300, 0x00CF },
 
-    [APP_CODE_SEG / 8] = {
-        .limit_l = 0xFFFF,
-        .base_l = 0x0000,
-        .basehl_attr = 0xFA00,
-        .base_limit = 0x00CF
-    },
+    [TASK0_TSS_SEG / 8] = { 0x68, 0, 0xE900, 0x0 },
+    [TASK1_TSS_SEG / 8] = { 0x68, 0, 0xE900, 0x0 },
 
-    [APP_DATA_SEG / 8] = {
-        .limit_l = 0xFFFF,
-        .base_l = 0x0000,
-        .basehl_attr = 0xF300,
-        .base_limit = 0x00CF
-    },
-
-    [TASK0_TSS_SEG / 8] = {
-        .limit_l = 0x68,
-        .base_l = 0,
-        .basehl_attr = 0xE900,
-        .base_limit = 0x0
-    },
-
-    [TASK1_TSS_SEG / 8] = {
-        .limit_l = 0x68,
-        .base_l = 0,
-        .basehl_attr = 0xE900,
-        .base_limit = 0x0
-    }
+    [SYSCALL_SEG / 8] = { 0x0000, KERNEL_CODE_SEG, 0xEC03, 0 }
 };
 
 void outb(uint8_t data, uint16_t port) 
@@ -137,6 +127,7 @@ void task_sched(void) {
 }
 
 void timer_init(void);
+void syscall_handler(void);
 void os_init(void) {
     outb(0x11, 0x20);
     outb(0x11, 0xA0);
@@ -161,6 +152,7 @@ void os_init(void) {
 
     gdt_table[TASK0_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task0_tss;
     gdt_table[TASK1_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task1_tss;
+    gdt_table[SYSCALL_SEG / 8].limit_l = (uint16_t)(uint32_t)syscall_handler;
     
     page_dir[MAP_ADDR >> 22] = (uint32_t)page_table | PDE_P | PDE_W | PDE_U;
     page_table[MAP_ADDR >> 12 & 0x3FF] = (uint32_t)map_phy_buffer | PDE_P | PDE_W | PDE_U;
