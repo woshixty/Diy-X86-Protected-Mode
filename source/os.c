@@ -13,13 +13,15 @@ void do_syscall(int func, char * str, char color) {
             *dest++ = *str++ | (color << 8);
         }
         row = (row >= 25) ? 0 : row + 1;
+        for (int i = 0; i < 0xFFFFFF; i++) ;
     }
 }
 
 void sys_show (char * str, char color)
 {
     uint32_t addr[] = {0, SYSCALL_SEG};
-    __asm__ __volatile__("lcalll *(%[a])"::[a]"r"(addr));
+    __asm__ __volatile__("push %[color]; push %[str]; push %[id]; lcalll *(%[a])"::
+        [a]"r"(addr), [color]"m"(color), [str]"m"(str), [id]"r"(2));
 }
 
 void task_0 (void) {

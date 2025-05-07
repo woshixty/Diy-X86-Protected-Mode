@@ -87,10 +87,6 @@ task_0_entry:
 	mov %ax, %es
 	jmp task_0			// 跳转到任务0运行
 
-syscall_handler:
-	call do_syscall 
-	ret
-
 // 定时器0中断函数
 timer_init:
 	push %ds
@@ -107,6 +103,25 @@ timer_init:
 	popa						// 恢复现场
 	pop %ds
 	iret						// 中断返回
+
+syscall_handler:
+	push %ds
+	pusha
+
+	mov $KERNEL_DATA_SEG, %ax
+	mov %ax, %ds
+
+	mov %esp, %ebp
+	push 13*4(%ebp)
+	push 12*4(%ebp)
+	push 11*4(%ebp)
+	call do_syscall 
+	add $(3*4), %esp
+	
+	popa
+	pop %ds
+
+	retf $(3*4)
 
 // gdt描述符，由lgdt加载
 gdt_desc: .word (256*8) - 1
