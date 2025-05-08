@@ -73,6 +73,16 @@ struct {
 
 uint32_t task0_dpl0_stack[1024], task0_dpl3_stack[1024], task1_dpl0_stack[1024], task1_dpl3_stack[1024];
 
+struct { uint16_t limit_l, base_l, basehl_attr, base_limit; } task0_ldt_table[256] __attribute__((aligned(8))) = {
+    [TASK_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0xFA00, 0x00CF },
+    [TASK_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0xF300, 0x00CF },
+};
+
+struct { uint16_t limit_l, base_l, basehl_attr, base_limit; } task1_ldt_table[256] __attribute__((aligned(8))) = {
+    [TASK_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0xFA00, 0x00CF },
+    [TASK_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0xF300, 0x00CF },
+};
+
 /**
  * @brief 任务0的任务状态段
  */
@@ -82,7 +92,7 @@ uint32_t task0_tss[] = {
     // cr3, eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi,
     (uint32_t)page_dir, (uint32_t)task_0/*入口地址*/, 0x202, 0xa, 0xc, 0xd, 0xb, (uint32_t)task1_dpl0_stack + 4*1024/* 栈 */, 0x1, 0x2, 0x3,
     // es, cs, ss, ds, fs, gs, ldt, iomap
-    APP_DATA_SEG, APP_CODE_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, 0x0, 0x0,
+    TASK_DATA_SEG, TASK_CODE_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK0_LDT_SEG, 0x0,
 };
 
 uint32_t task1_tss[] = {
@@ -91,21 +101,19 @@ uint32_t task1_tss[] = {
     // cr3, eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi,
     (uint32_t)page_dir, (uint32_t)task_1/*入口地址*/, 0x202, 0xa, 0xc, 0xd, 0xb, (uint32_t)task1_dpl3_stack + 4*1024/* 栈 */, 0x1, 0x2, 0x3,
     // es, cs, ss, ds, fs, gs, ldt, iomap
-    APP_DATA_SEG, APP_CODE_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, 0x0, 0x0,
+    TASK_DATA_SEG, TASK_CODE_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK_DATA_SEG, TASK1_LDT_SEG, 0x0,
 };
 
 // 8字节对齐
-struct {
-    uint16_t limit_l; 
-    uint16_t base_l; 
-    uint16_t basehl_attr; 
-    uint16_t base_limit;
-} gdt_table[256] __attribute__((aligned(8))) = {
+struct { uint16_t limit_l, base_l, basehl_attr, base_limit; } gdt_table[256] __attribute__((aligned(8))) = {
     [KERNEL_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0x9A00, 0x00CF },
     [KERNEL_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0x9200, 0x00CF },
 
     [APP_CODE_SEG / 8] = { 0xFFFF, 0x0000, 0xFA00, 0x00CF },
     [APP_DATA_SEG / 8] = { 0xFFFF, 0x0000, 0xF300, 0x00CF },
+
+    [TASK0_LDT_SEG / 8] = { sizeof(task0_ldt_table) - 1, 0x0, 0xE200, 0x00CF },
+    [TASK1_LDT_SEG / 8] = { sizeof(task1_ldt_table) - 1, 0x0, 0xE200, 0x00CF },
 
     [TASK0_TSS_SEG / 8] = { 0x68, 0, 0xE900, 0x0 },
     [TASK1_TSS_SEG / 8] = { 0x68, 0, 0xE900, 0x0 },
@@ -155,6 +163,8 @@ void os_init(void) {
     gdt_table[TASK0_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task0_tss;
     gdt_table[TASK1_TSS_SEG / 8].base_l = (uint16_t)(uint32_t)task1_tss;
     gdt_table[SYSCALL_SEG / 8].limit_l = (uint16_t)(uint32_t)syscall_handler;
+    gdt_table[TASK0_LDT_SEG / 8].base_l = (uint32_t)task0_ldt_table;
+    gdt_table[TASK1_LDT_SEG / 8].base_l = (uint32_t)task1_ldt_table;
     
     page_dir[MAP_ADDR >> 22] = (uint32_t)page_table | PDE_P | PDE_W | PDE_U;
     page_table[MAP_ADDR >> 12 & 0x3FF] = (uint32_t)map_phy_buffer | PDE_P | PDE_W | PDE_U;
